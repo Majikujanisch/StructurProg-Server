@@ -1,2 +1,2 @@
 .env
-server/logs/logall.txt
+/logs/logall.txt
