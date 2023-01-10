@@ -1,10 +1,14 @@
 const fs = require("fs");
 const pD = require("./prettyDate");
 path = "./logs/logall.txt";
+directory = "./logs"
 
 function logApi(req, res, type, reason) {
   username = req.body.user;
-  console.log(!fs.existsSync(path));
+  console.log(!fs.existsSync(directory) +  "            Directory");
+  if(!fs.existsSync(directory)){
+    fs.mkdirSync(directory)
+  }
   if (!fs.existsSync(path)) {
     console.log("If-Abfrage");
     fs.writeFile(path, "created logging file", (err) => {
@@ -34,7 +38,7 @@ function logApi(req, res, type, reason) {
             pD.prettyDate() +
             " registration " +
             username +
-            "Failed due to an existing User with this Username";
+            " Failed due to an existing User with this Username";
           fs.appendFile(path, content, (err) => {
             if (err) {
               console.error(err);
