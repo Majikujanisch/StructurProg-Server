@@ -22,10 +22,11 @@ const port = 5000
 app.use(express.json())
 app.use(sessions(
   { 
-    secret: 'gffjgfjhgfjgfjgdsfsflkizuv',
-    saveUninitialized: false,
-    cookie: { maxAge: 86400000 },  //One day: 86 400 000
-    resave: false 
+     name:"SessionCookie",
+     secret: 'gffjgfjhgfjgfjgdsfsflkizuv',
+     saveUninitialized: false,
+     cookie: { maxAge: 86400000, secure: false },  //One day: 86 400 000
+     resave: false 
   }));
 app.use(cors({
     origin: "http://localhost:3000",
@@ -95,14 +96,23 @@ app.post("/api/login", async(req, res) => {
       if(err) {
         console.log(err)
       }
-      if(result != undefined && result != null){
-      if(Object.hasOwn(result[0], "username")){   
-        console.log(req.session + " NEW")
-				session=req.session;
-        session.userid=req.body.user;
-        console.log(req.session);       // Save this into the db to check sessions later
-				// Redirect to home page
-				//res.redirect('/home');
+      if(result != undefined && result != null && result != "[]"){
+        if(Object.hasOwn(result[0], "username")){   
+        session = req.session
+        session.cookie.userid=req.body.user;
+				cookie = req.cookies
+        console.log("Cookie")
+        console.log(req.body.user)
+        res.cookie("usermail", req.body.user,{maxAge:9000000, httpOnly:true})
+        
+         db.query('INSERT INTO sessions VALUES (?,?,?)',[result[0].idUser, session.cookie._expires ,cookie.SessionCookie], (err, result)=>{
+           if(err){
+             console.log(err)
+           }
+           else{
+             console.log("wrote "+cookie.SessionCookie + " into db of user "+session.userid)
+           }
+         })
         res.send("<h1>logged in</h1>")
       }
       
@@ -132,13 +142,28 @@ app.get('/home', function(request, response) {
 
 // test for session management
 app.get('/secret',(req,res)=>{
-  session = req.session.userid
-  console.log("ses")
-  console.log(session.userid)
-  if(session.userid){
-      res.send("<div>LOGIN</div>");
-  }else
-  res.send("<div>FALSCHER LOGIN</div>")
+  session = req.session
+  cookie = req.cookies
+  var authenicated = false
+  //console.log("Cookie")
+  //console.log(cookie.SessionCookie)
+  db.query('SELECT sessions.data FROM sessions INNER JOIN user on sessions.session_id=user.idUser WHERE user.email = ?',[cookie.usermail], (err, result)=>{
+    if(err){
+      console.log(err)
+    }
+    else{
+      console.log(result[0].data)
+      console.log(cookie.SessionCookie)
+      if(result[0].data == cookie.SessionCookie){
+
+        authenicated = true
+        console.log("authenticated")
+      }
+      else{
+        console.log("something went wrong with authenticating")
+      }
+    }
+  })
 });
 
 console.log("API Started")
