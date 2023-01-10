@@ -29,6 +29,7 @@ app.use(sessions(
   }));
 app.use(cors({
     origin: "http://localhost:3000",
+    credentials: true,
 }))
 app.use(cookieParser());
 
@@ -91,26 +92,30 @@ app.post("/api/login", async(req, res) => {
   let pw = req.body.pw
   if(email && pw){
     db.query('SELECT * FROM user WHERE email = ? AND pw = ?', [email, pw], (err, result)=> {
-      console.log(result)
-      console.log(Object.hasOwn(result, "username"))
       if(err) {
         console.log(err)
-      if(Object.hasOwn(result, "username")){   //Find posiblity to check if input was correct TODO
+      }
+      if(result != undefined && result != null){
+      if(Object.hasOwn(result[0], "username")){   
         console.log(req.session + " NEW")
 				session=req.session;
         session.userid=req.body.user;
-        console.log(req.session);
+        console.log(req.session);       // Save this into the db to check sessions later
 				// Redirect to home page
 				//res.redirect('/home');
         res.send("<h1>logged in</h1>")
       }
-      else {
-        res.send("incorrect email or password")
-      }
+      
+    }
+    else {
+      res.status(404).send("incorrect email or password")
+    }
       res.end();
-    }});
+    });
   }
+  else{
   res.send("no inputs")
+  }
 })
 
 app.get('/home', function(request, response) {
@@ -127,8 +132,9 @@ app.get('/home', function(request, response) {
 
 // test for session management
 app.get('/secret',(req,res)=>{
-  session=req.session;
-  console.log(session.userid + "    SES")
+  session = req.session.userid
+  console.log("ses")
+  console.log(session.userid)
   if(session.userid){
       res.send("<div>LOGIN</div>");
   }else
