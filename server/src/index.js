@@ -56,7 +56,7 @@ app.listen(port, () => {
       NotEmpty = true;
     }
     if(NotEmpty){
-    db.query("select * from user where username=?", [username], (err, result) =>{
+    db.query("select * from user where username=? OR email=?", [username, email], (err, result) =>{
       console.log(result)
       //Error occurs if no user with this username is found, so this user is not in the system and should be 
       //added
