@@ -6,7 +6,8 @@ const logger = require('../tools/logging');
 const { response } = require('express');
 const cookieParser = require("cookie-parser");
 const app = express()
-var genuuid = require('uuid');// '/v4' for version 4
+const uuidv4 = require("uuid").v4
+const Cookies = require("js-cookie")
 var session
 const sessions = require('express-session');
 const standartSha = 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e'
@@ -22,6 +23,9 @@ const port = 5000
 app.use(express.json())
 app.use(sessions(
   { 
+     genid: function(req) {
+      return uuidv4() // use UUIDs for session IDs
+    },
      name:"SessionCookie",
      secret: 'gffjgfjhgfjgfjgdsfsflkizuv',
      saveUninitialized: false,
@@ -99,18 +103,18 @@ app.post("/api/login", async(req, res) => {
       if(result != undefined && result != null && result != "[]"){
         if(Object.hasOwn(result[0], "username")){   
         session = req.session
-        session.cookie.userid=req.body.user;
 				cookie = req.cookies
-        console.log("Cookie")
-        console.log(req.body.user)
-        res.cookie("usermail", req.body.user,{maxAge:9000000, httpOnly:true})
+        //var sessiontok = uuidv4
+        res.cookie("userid", result[0].idUser,{maxAge:9000000})
+        res.cookie("usermail", req.body.user,{maxAge:9000000})
+        res.cookie("SessionToken", req.sessionID,{maxAge:9000000})
         
-         db.query('INSERT INTO sessions VALUES (?,?,?)',[result[0].idUser, session.cookie._expires ,cookie.SessionCookie], (err, result)=>{
+         db.query('INSERT INTO sessions VALUES (?,?,?)',[result[0].idUser, session.cookie._expires ,req.sessionID], (err, result)=>{
            if(err){
              console.log(err)
            }
            else{
-             console.log("wrote "+cookie.SessionCookie + " into db of user "+session.userid)
+             console.log("wrote "+ req.sessionID + " into db of user "+ email)
            }
          })
         res.send("<h1>logged in</h1>")
@@ -128,11 +132,22 @@ app.post("/api/login", async(req, res) => {
   }
 })
 
-app.get('/home', function(request, response) {
+app.get('/logout', function(request, response) {
 	// If the user is loggedin
-	if (request.session.username = username) {
-		// Output username
-		response.send('Welcome back, ' + request.session.username + '!');
+	if (request.cookies.SessionToken) {
+    var sessionid = request.cookies.SessionToken
+    var user = request.cookies.userid
+		// delete session out of DB
+    db.query('DELETE FROM `sessions` WHERE (session_id = ?)',[user], (err, result)=>{
+      if(err){
+        console.log(err)
+      }
+      else{
+        console.log("deleted "+ sessionid + " into db of user "+ user)
+      }
+    })
+    //clearout cookies
+    Cookies.remove('*',{ path: '' })
 	} else {
 		// Not logged in
 		response.send('Please login to view this page!');
@@ -151,17 +166,22 @@ app.get('/secret',(req,res)=>{
     if(err){
       console.log(err)
     }
-    else{
+    else if(result[0]){
       console.log(result[0].data)
-      console.log(cookie.SessionCookie)
-      if(result[0].data == cookie.SessionCookie){
+      console.log(cookie.SessionToken)
+      if(result[0].data == cookie.SessionToken){
 
         authenicated = true
         console.log("authenticated")
+        res.sendStatus(200)
       }
       else{
-        console.log("something went wrong with authenticating")
+        console.log("something went wrong with authenticating, result but tokenmissmatch")
+        res.sendStatus(600)
       }
+    }
+    else{
+      console.log("something went wrong with authenticating, empty result")
     }
   })
 });
