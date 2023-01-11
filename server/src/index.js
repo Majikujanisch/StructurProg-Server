@@ -6,9 +6,10 @@ const logger = require('../tools/logging');
 const { response } = require('express');
 const cookieParser = require("cookie-parser");
 const app = express()
-var genuuid = require('uuid');// '/v4' for version 4
+const uuidv4 = require("uuid").v4
 var session
 const sessions = require('express-session');
+const { Session } = require('express-session');
 const standartSha = 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e'
 /*if client has authentication issues:
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'pw';
@@ -22,6 +23,9 @@ const port = 5000
 app.use(express.json())
 app.use(sessions(
   { 
+     genid: function(req) {
+      return uuidv4() // use UUIDs for session IDs
+    },
      name:"SessionCookie",
      secret: 'gffjgfjhgfjgfjgdsfsflkizuv',
      saveUninitialized: false,
@@ -99,18 +103,18 @@ app.post("/api/login", async(req, res) => {
       if(result != undefined && result != null && result != "[]"){
         if(Object.hasOwn(result[0], "username")){   
         session = req.session
-        session.cookie.userid=req.body.user;
 				cookie = req.cookies
-        console.log("Cookie")
-        console.log(req.body.user)
-        res.cookie("usermail", req.body.user,{maxAge:9000000, httpOnly:true})
+        console.log(req)
+        //var sessiontok = uuidv4
+        res.cookie("usermail", req.body.user,{maxAge:9000000})
+        res.cookie("SessionToken", req.sessionID,{maxAge:9000000})
         
-         db.query('INSERT INTO sessions VALUES (?,?,?)',[result[0].idUser, session.cookie._expires ,cookie.SessionCookie], (err, result)=>{
+         db.query('INSERT INTO sessions VALUES (?,?,?)',[result[0].idUser, session.cookie._expires ,req.sessionID], (err, result)=>{
            if(err){
              console.log(err)
            }
            else{
-             console.log("wrote "+cookie.SessionCookie + " into db of user "+session.userid)
+             console.log("wrote "+ req.sessionID + " into db of user "+ email)
            }
          })
         res.send("<h1>logged in</h1>")
@@ -153,11 +157,12 @@ app.get('/secret',(req,res)=>{
     }
     else{
       console.log(result[0].data)
-      console.log(cookie.SessionCookie)
-      if(result[0].data == cookie.SessionCookie){
+      console.log(cookie.SessionToken)
+      if(result[0].data == cookie.SessionToken){
 
         authenicated = true
         console.log("authenticated")
+        res.sendStatus(200)
       }
       else{
         console.log("something went wrong with authenticating")
