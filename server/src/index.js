@@ -108,10 +108,19 @@ app.post("/api/login", async(req, res) => {
         res.cookie("userid", result[0].idUser,{maxAge:9000000})
         res.cookie("usermail", req.body.user,{maxAge:9000000})
         res.cookie("SessionToken", req.sessionID,{maxAge:9000000})
-        
-         db.query('INSERT INTO sessions VALUES (?,?,?)',[result[0].idUser, session.cookie._expires ,req.sessionID], (err, result)=>{
+        var Userid = result[0].idUser
+         db.query('INSERT INTO sessions VALUES (?,?,?)',[Userid, session.cookie._expires ,req.sessionID], (err, result)=>{
            if(err){
-             console.log(err)
+             console.log(err) 
+             db.query('UPDATE sessions SET data=? WHERE session_id=?', [req.sessionID, Userid], (error, result)=>{
+              if(error){
+                console.log(err)
+              }
+              if(result){
+                console.log("reautheniticated")
+              }
+             }
+             )
            }
            else{
              console.log("wrote "+ req.sessionID + " into db of user "+ email)
@@ -132,7 +141,7 @@ app.post("/api/login", async(req, res) => {
   }
 })
 
-app.get('/logout', function(request, response) {
+app.get('/api/logout', function(request, response) {
 	// If the user is loggedin
 	if (request.cookies.SessionToken) {
     var sessionid = request.cookies.SessionToken
@@ -159,7 +168,6 @@ app.get('/logout', function(request, response) {
 app.get('/secret',(req,res)=>{
   session = req.session
   cookie = req.cookies
-  var authenicated = false
   //console.log("Cookie")
   //console.log(cookie.SessionCookie)
   db.query('SELECT sessions.data FROM sessions INNER JOIN user on sessions.session_id=user.idUser WHERE user.email = ?',[cookie.usermail], (err, result)=>{
@@ -171,7 +179,6 @@ app.get('/secret',(req,res)=>{
       console.log(cookie.SessionToken)
       if(result[0].data == cookie.SessionToken){
 
-        authenicated = true
         console.log("authenticated")
         res.sendStatus(200)
       }
