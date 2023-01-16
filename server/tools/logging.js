@@ -2,7 +2,7 @@ const fs = require("fs");
 const pD = require("./prettyDate");
 path = "./logs/logall.txt";
 directory = "./logs"
-
+//only for reference reason
 function logApi(req, res, type, reason) {
   username = req.body.user;
   console.log(!fs.existsSync(directory) +  "            Directory");

@@ -1,3 +1,5 @@
+//not needed due to morgan
+
 function prettyDate (){
     //Code From: https://usefulangle.com/post/187/nodejs-get-date-time
 // current date
